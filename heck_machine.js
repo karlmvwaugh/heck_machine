@@ -143,7 +143,7 @@ const initSounds = function() {
         .dac();
 
      __().lfo({id: "squareOsc", frequency:0.1 ,modulates:"frequency",gain:10,type:"sine"}).connect("#squareWave");
-    __().lfo({id: "tremelo2", frequency:0.5 ,modulates:"gain",gain:0.3, type:"sine"}).connect("#gain");
+    __().lfo({id: "tremelo2", frequency:0.5 ,modulates:"gain",gain:0.3, type:"sine"}).connect("#gain2");
 };
 
 const buildSlideControl = function(description, valueName, property, minimumValue, maximumValue, width, startWidth, height, startHeight) {
@@ -396,7 +396,7 @@ const init = function(event) {
     var itemWidth = effectiveWidth / 2;
     var secondPad = itemWidth + 2*leftPad;
 
-    buildSlideControl("Tremelo Speed", "tremelo", "frequency",0, 10, itemWidth, leftPad, 30, 30);
+    buildSlideControl("Tremelo Speed", "tremelo", "frequency",0, 20, itemWidth, leftPad, 30, 30);
     buildSlideControl("Low Pass", "lowpass1", "frequency",0, 500, itemWidth, leftPad, 30, 60);
     buildSlideControl("Pitch Wobble Speed", "pitch", "frequency", 0, 2, itemWidth, leftPad, 30, 90);
     buildSlideControl("Pitch Wobble Amount", "pitch2", "gain",0, 100, itemWidth, leftPad, 30, 120);
@@ -406,9 +406,9 @@ const init = function(event) {
 
 
     buildSlideControl("Frequency", "squareWave", "frequency",0, 200, itemWidth, secondPad, 30, 30);
-    buildSlideControl("Pitch Wobble Speed", "squareOsc", "frequency",0, 1, itemWidth, secondPad, 30, 60);
+    buildSlideControl("Pitch Wobble Speed", "squareOsc", "frequency",0, 20, itemWidth, secondPad, 30, 60);
     buildSlideControl("Pitch Wobble Amount", "squareOsc", "gain",0, 100, itemWidth, secondPad, 30, 90);
-    buildSlideControl("Tremelo Speed", "tremelo2", "frequency",0, 2, itemWidth, secondPad, 30, 120);
+    buildSlideControl("Tremelo Speed", "tremelo2", "frequency",0, 20, itemWidth, secondPad, 30, 120);
     buildSlideControl("Tremelo Amount", "tremelo2", "gain",0, 1, itemWidth, secondPad, 30, 150);
 
     buildCrossFadeControl("Cross Fade", effectiveWidth, paddingWidth, 30, 240);
@@ -432,6 +432,10 @@ const init = function(event) {
     //
     // Work out how to deploy this mofo (ish - does it change on change)
     // Drag the dials.
+    //
+    // make new settings easier to insert (agnostic backend/state model)
+    // logarhythmic and/or linear scales on different sliders
+    //
     // *//
 
 
