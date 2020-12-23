@@ -7,6 +7,7 @@ var effectiveHeight;
 var socket;
 
 var state = {
+    crossfade: {volume: 0.3},
     tremelo: { frequency: 4},
     pitch: {frequency: 0.15},
     pitch2: {gain: 5},
@@ -94,13 +95,24 @@ const initD3 = function() {
         return container;
     };
 
-const initSounds = function() {
-    __().sine({id: "sine", frequency: 150})
-        .gain({id: "gain", gain: 1})
-        .delay({delay: 0.5, feedback: 0.3, cutoff: 1500, id: "delay"})
-        .gain({id: "MG1", gain: 0.6})
 
+
+
+const initSounds = function() {
+    __().gain({id: "MG1", gain: 0.7})
         .dac();
+
+    __().sine({id: "sine", frequency: 150})
+        .gain({id: "gain", gain: 1});
+
+    __().delay({delay: 0.5, feedback: 0.3, cutoff: 1500, id: "delay"}).connect("#MG1");
+
+    __("#gain").connect("#MG1");
+    __("#gain").connect("#delay");
+
+
+
+
 
 
     __().lfo({id: "tremelo", frequency:4 ,modulates:"gain",gain:1,type:"square"}).connect("#gain");
@@ -118,7 +130,7 @@ const initSounds = function() {
     __().lfo({id: "tremelo2", frequency:0.5 ,modulates:"gain",gain:0.3, type:"sine"}).connect("#gain");
 };
 
-const buildSlideControl = function(valueName, property, minimumValue, maximumValue, width, startWidth, height, startHeight) {
+const buildSlideControl = function(description, valueName, property, minimumValue, maximumValue, width, startWidth, height, startHeight) {
     var getCoord = function(value) {
         const share = (value - minimumValue) / (maximumValue - minimumValue);
 
@@ -142,15 +154,27 @@ const buildSlideControl = function(valueName, property, minimumValue, maximumVal
         .attr("fill", "black")
         .style("opacity", 1); //0.5 if we want them to overlap
 
-    var circle = container
+    container.append("text")
+        .text(description)
+        .attr("x", startWidth + 100)
+        .attr("y", startHeight + 18)
+        .style("font-size", "14px")
+        .attr("fill", "white")
+        .style("opacity", 0.7);
+
+
+    var circleGroup = container.append("g")
+        .attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")");
+
+    var circle = circleGroup
         .append("circle")
         .attr("id", valueName)
         .attr("r", 10)
         .attr("fill", "black")
         .attr("stroke", "none")
         .attr("stroke-width", "0px")
-        .attr("cx", getCoord(currentValue))
-        .attr("cy", startHeight + (height/2))
+        .attr("cx", 0)
+        .attr("cy", 0)
         .style("opacity", 1);
 
     var colourLoop = function() {
@@ -188,13 +212,104 @@ const buildSlideControl = function(valueName, property, minimumValue, maximumVal
         console.log(updateValue + ":" + getCoord(updateValue));
         currentValue = updateValue;
 
-        const attrObject = {};
-        attrObject[property] = updateValue;
-        __("#" + valueName).attr(attrObject);
+        // const attrObject = {};
+        // attrObject[property] = updateValue;
+        // __("#" + valueName).attr(attrObject);
 
-        circle.transition().duration(100).attr("cx", getCoord(updateValue));
+        __("#" + valueName).ramp(updateValue,0.1,property);
+
+
+
+        circleGroup.transition().duration(100).attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")");
+        // circle.transition().duration(100).attr("cx", getCoord(updateValue));
     };
     controls.setCallbacks(valueName, property, updateFunction);
+};
+
+
+const buildCrossFadeControl = function(description, width, startWidth, height, startHeight) {
+    var getCoord = function(value) {
+        return value*width + startWidth;
+    };
+
+    var currentValue = state.crossfade.volume;
+
+    var ellipseIsGreen = true;
+
+    var ellipse = container.append("ellipse")
+        .attr("cx", startWidth + width/2)
+        .attr("cy", startHeight + height/2)
+        .attr("rx", width/2)
+        .attr("ry", height/2)
+        .attr("fill", "red")
+        .style("opacity", 1); //0.5 if we want them to overlap
+
+    container.append("text")
+        .text(description)
+        .attr("x", startWidth + 100)
+        .attr("y", startHeight + 18)
+        .style("font-size", "14px")
+        .attr("fill", "white")
+        .style("opacity", 0.7);
+
+
+    var circleGroup = container.append("g")
+        .attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")");
+
+    var circle = circleGroup
+        .append("circle")
+        .attr("id", "crossfade")
+        .attr("r", 10)
+        .attr("fill", "black")
+        .attr("stroke", "none")
+        .attr("stroke-width", "0px")
+        .attr("cx", 0)
+        .attr("cy", 0)
+        .style("opacity", 1);
+
+    // var colourLoop = function() {
+    //     var duration = getDuration();
+    //     ellipse.transition().duration(duration)
+    //         .attr("fill", ellipseIsGreen ? "purple" : "green");
+    //
+    //     circle.transition().duration(duration)
+    //         .attr("fill", ellipseIsGreen ? "orange" : "red");
+    //
+    //
+    //     ellipseIsGreen = !ellipseIsGreen;
+    //
+    //     window.setTimeout(colourLoop, duration);
+    // };
+    //
+    // colourLoop();
+
+    const coordsInRange = function (x, y) {
+        return (x > startWidth && x < startWidth + width && y > startHeight && y < startHeight + height);
+    };
+
+    const clickFunction = function(x, y) {
+        if (coordsInRange(x, y)) {
+            var newValue = (x - startWidth) / (width);
+
+            controls.dispatcher("crossfade", "volume", newValue);
+        }
+    };
+
+    controls.clickList.push(clickFunction);
+
+    const updateFunction = function (updateValue) {
+        console.log(updateValue + ":" + getCoord(updateValue));
+        currentValue = updateValue;
+
+
+
+        __("#MG1").ramp((1 - currentValue),0.2,"gain");
+        __("#MG2").ramp(currentValue,0.2,"gain");
+
+
+        circleGroup.transition().duration(100).attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")");
+    };
+    controls.setCallbacks("crossfade", "volume", updateFunction);
 };
 
 var countDisplay = function() {
@@ -255,17 +370,20 @@ const init = function(event) {
     var itemWidth = effectiveWidth / 2;
     var secondPad = itemWidth + 2*leftPad;
 
-    buildSlideControl("tremelo", "frequency",1, 10, itemWidth, leftPad, 30, 30);
-    buildSlideControl("pitch", "frequency", 0.05, 2, itemWidth, leftPad, 30, 60);
-    buildSlideControl("pitch2", "gain",5, 100, itemWidth, leftPad, 30, 90);
-    buildSlideControl("delay", "delay",0.05, 2, itemWidth, leftPad, 30, 120);
-    buildSlideControl("delay", "feedback",0, 0.8, itemWidth, leftPad, 30, 150);
+    buildSlideControl("Tremelo Speed", "tremelo", "frequency",1, 10, itemWidth, leftPad, 30, 30);
+    buildSlideControl("Pitch Wobble Speed", "pitch", "frequency", 0.05, 2, itemWidth, leftPad, 30, 60);
+    buildSlideControl("Pitch Wobble Amount", "pitch2", "gain",5, 100, itemWidth, leftPad, 30, 90);
+    buildSlideControl("Delay Time", "delay", "delay",0.05, 2, itemWidth, leftPad, 30, 120);
+    buildSlideControl("Delay Feedback", "delay", "feedback",0, 0.8, itemWidth, leftPad, 30, 150);
 
-    buildSlideControl("squareWave", "frequency",20, 200, itemWidth, secondPad, 30, 30);
-    buildSlideControl("squareOsc", "gain",1, 100, itemWidth, secondPad, 30, 60);
-    buildSlideControl("squareOsc", "frequency",0, 1, itemWidth, secondPad, 30, 90);
-    buildSlideControl("tremelo2", "frequency",0.1, 2, itemWidth, secondPad, 30, 120);
-    buildSlideControl("tremelo2", "gain",0, 0.7, itemWidth, secondPad, 30, 150);
+    buildSlideControl("Frequency", "squareWave", "frequency",20, 200, itemWidth, secondPad, 30, 30);
+    buildSlideControl("Pitch Wobble Speed", "squareOsc", "frequency",0, 1, itemWidth, secondPad, 30, 60);
+    buildSlideControl("Pitch Wobble Amount", "squareOsc", "gain",1, 100, itemWidth, secondPad, 30, 90);
+    buildSlideControl("Tremelo Speed", "tremelo2", "frequency",0.1, 2, itemWidth, secondPad, 30, 120);
+    buildSlideControl("Tremelo Amount", "tremelo2", "gain",0, 0.7, itemWidth, secondPad, 30, 150);
+
+    buildCrossFadeControl("Cross Fade", effectiveWidth, paddingWidth, 30, 210);
+
     countDisplay();
     __("#sine").play();
     __("#squareWave").play();
@@ -278,13 +396,10 @@ const init = function(event) {
     // kaos pad section
     // mini-chat window,
     // online counter (working ish)
-    // more controls on current things (osc speed, depth, second delay time etc.)
-    // weclome page
-    // Names on the controls
+    // more controls on current things (osc speed, depth, second delay time etc.) - dry delay etc
     // Different colourings on different control sections (perhaps?) (colourschemes)
     // relative volume controls. /. crossfade for 2 sections
-    // interrupted transitions occasionally (colour transition interrupting position transition? do it with groupings?)
-    //
+    // REWIRE second to allow more controls.
     //
     // Work out how to deploy this mofo (ish - does it change on change)
     //
