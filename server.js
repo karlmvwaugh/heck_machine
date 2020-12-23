@@ -22,9 +22,12 @@ app.get('/cracked.js', (req, res) => {
 var state = {
     crossfade: {volume: 0.3},
     tremelo: { frequency: 4},
+    lowpass1: {frequency: 150},
     pitch: {frequency: 0.15},
     pitch2: {gain: 5},
     delay: {delay: 0.5, feedback: 0.3},
+    drySignal: {gain: 1},
+
     squareWave: {frequency: 150},
     squareOsc: {gain: 10, frequency: 0.1},
     tremelo2: {frequency: 0.5, gain: 0.3},

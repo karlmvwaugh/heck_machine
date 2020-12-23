@@ -9,9 +9,11 @@ var socket;
 var state = {
     crossfade: {volume: 0.3},
     tremelo: { frequency: 4},
+    lowpass1: {frequency: 150},
     pitch: {frequency: 0.15},
     pitch2: {gain: 5},
     delay: {delay: 0.5, feedback: 0.3},
+    drySignal: {gain: 1},
     squareWave: {frequency: 150},
     squareOsc: {gain: 10, frequency: 0.1},
     tremelo2: {frequency: 0.5, gain: 0.3},
@@ -45,17 +47,30 @@ var initSocket = function() {
 };
 
 var controls = {
-    callbacks: {},
-    clickList: [],
-    clicker: function(event) {
+    mouseIsDown: false,
+    effectCallbacks: {},
+    sliderCallbacks: [],
+    mouseDown: function(event) {
         var x = event.clientX;
         var y = event.clientY;
-        controls.clickList.map(clickMethod => clickMethod(x, y));
+        controls.sliderCallbacks.map(clickMethod => clickMethod(x, y));
+    },
+    mouseUp: function(event) {
+    },
+    mouseMove: function(event) {
+      if (event.buttons === 1 || event.buttons === 3) {
+          var x = event.clientX;
+          var y = event.clientY;
+          controls.sliderCallbacks.map(clickMethod => clickMethod(x, y));
+      }
+
+      //add mousemoveevent listeners here on a similar sliderCallbacks.
+
     },
     reciever: function(valueName, property, value) {
         console.log(valueName + "set to" + value);
 
-        controls.callbacks[valueName][property](value);
+        controls.effectCallbacks[valueName][property](value);
         state[valueName][property] = value;
     },
     dispatcher: function(valueName, property, value) {
@@ -63,11 +78,11 @@ var controls = {
         socket.emit('dial move', {valueName: valueName, property: property, value: value});
     },
     setCallbacks: function(valueName, property, callback) {
-        if (!controls.callbacks[valueName]) {
-            controls.callbacks[valueName] = {}
+        if (!controls.effectCallbacks[valueName]) {
+            controls.effectCallbacks[valueName] = {}
         }
 
-        controls.callbacks[valueName][property] = callback;
+        controls.effectCallbacks[valueName][property] = callback;
     }
 };
 
@@ -103,11 +118,12 @@ const initSounds = function() {
         .dac();
 
     __().sine({id: "sine", frequency: 150})
+        .lowpass({id: "lowpass1", frequency: 500})
         .gain({id: "gain", gain: 1});
 
     __().delay({delay: 0.5, feedback: 0.3, cutoff: 1500, id: "delay"}).connect("#MG1");
 
-    __("#gain").connect("#MG1");
+    __("#gain").gain({id: "drySignal", gain: 1}).connect("#MG1");
     __("#gain").connect("#delay");
 
 
@@ -206,26 +222,21 @@ const buildSlideControl = function(description, valueName, property, minimumValu
       }
     };
 
-    controls.clickList.push(clickFunction);
+    controls.sliderCallbacks.push(clickFunction);
 
     const updateFunction = function (updateValue) {
         console.log(updateValue + ":" + getCoord(updateValue));
         currentValue = updateValue;
 
-        // const attrObject = {};
-        // attrObject[property] = updateValue;
-        // __("#" + valueName).attr(attrObject);
-
         __("#" + valueName).ramp(updateValue,0.1,property);
 
-
-
-        circleGroup.transition().duration(100).attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")");
-        // circle.transition().duration(100).attr("cx", getCoord(updateValue));
+        circleGroup.transition()
+            .duration(100)
+            .attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")")
+            .ease("linear");
     };
     controls.setCallbacks(valueName, property, updateFunction);
 };
-
 
 const buildCrossFadeControl = function(description, width, startWidth, height, startHeight) {
     var getCoord = function(value) {
@@ -295,17 +306,14 @@ const buildCrossFadeControl = function(description, width, startWidth, height, s
         }
     };
 
-    controls.clickList.push(clickFunction);
+    controls.sliderCallbacks.push(clickFunction);
 
     const updateFunction = function (updateValue) {
         console.log(updateValue + ":" + getCoord(updateValue));
         currentValue = updateValue;
 
-
-
         __("#MG1").ramp((1 - currentValue),0.2,"gain");
         __("#MG2").ramp(currentValue,0.2,"gain");
-
 
         circleGroup.transition().duration(100).attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")");
     };
@@ -357,15 +365,25 @@ homeScreen();
 
 const mouseDown = function(event) {
     if (initted) {
-        controls.clicker(event);
-        //mark drag in progress on event
-        //then mark mouse moves? perhaps?
+        controls.mouseDown(event);
+    }
+};
+
+const mouseUp = function(event) {
+    if (initted) {
+        controls.mouseUp(event);
+    }
+};
+
+const mouseMove = function(event) {
+    if (initted) {
+        controls.mouseMove(event);
     }
 };
 
 const init = function(event) {
     if (initted) {
-        //controls.clicker(event);
+        //controls.mouseDown(event);
         return;
     }
     initted = true;
@@ -378,19 +396,22 @@ const init = function(event) {
     var itemWidth = effectiveWidth / 2;
     var secondPad = itemWidth + 2*leftPad;
 
-    buildSlideControl("Tremelo Speed", "tremelo", "frequency",1, 10, itemWidth, leftPad, 30, 30);
-    buildSlideControl("Pitch Wobble Speed", "pitch", "frequency", 0.05, 2, itemWidth, leftPad, 30, 60);
-    buildSlideControl("Pitch Wobble Amount", "pitch2", "gain",5, 100, itemWidth, leftPad, 30, 90);
-    buildSlideControl("Delay Time", "delay", "delay",0.05, 2, itemWidth, leftPad, 30, 120);
-    buildSlideControl("Delay Feedback", "delay", "feedback",0, 0.8, itemWidth, leftPad, 30, 150);
+    buildSlideControl("Tremelo Speed", "tremelo", "frequency",0, 10, itemWidth, leftPad, 30, 30);
+    buildSlideControl("Low Pass", "lowpass1", "frequency",0, 500, itemWidth, leftPad, 30, 60);
+    buildSlideControl("Pitch Wobble Speed", "pitch", "frequency", 0, 2, itemWidth, leftPad, 30, 90);
+    buildSlideControl("Pitch Wobble Amount", "pitch2", "gain",0, 100, itemWidth, leftPad, 30, 120);
+    buildSlideControl("Delay Time", "delay", "delay",0, 2, itemWidth, leftPad, 30, 150);
+    buildSlideControl("Delay Feedback", "delay", "feedback",0, 1, itemWidth, leftPad, 30, 180);
+    buildSlideControl("Dry Delay", "drySignal", "gain",0, 1, itemWidth, leftPad, 30, 210);
 
-    buildSlideControl("Frequency", "squareWave", "frequency",20, 200, itemWidth, secondPad, 30, 30);
+
+    buildSlideControl("Frequency", "squareWave", "frequency",0, 200, itemWidth, secondPad, 30, 30);
     buildSlideControl("Pitch Wobble Speed", "squareOsc", "frequency",0, 1, itemWidth, secondPad, 30, 60);
-    buildSlideControl("Pitch Wobble Amount", "squareOsc", "gain",1, 100, itemWidth, secondPad, 30, 90);
-    buildSlideControl("Tremelo Speed", "tremelo2", "frequency",0.1, 2, itemWidth, secondPad, 30, 120);
-    buildSlideControl("Tremelo Amount", "tremelo2", "gain",0, 0.7, itemWidth, secondPad, 30, 150);
+    buildSlideControl("Pitch Wobble Amount", "squareOsc", "gain",0, 100, itemWidth, secondPad, 30, 90);
+    buildSlideControl("Tremelo Speed", "tremelo2", "frequency",0, 2, itemWidth, secondPad, 30, 120);
+    buildSlideControl("Tremelo Amount", "tremelo2", "gain",0, 1, itemWidth, secondPad, 30, 150);
 
-    buildCrossFadeControl("Cross Fade", effectiveWidth, paddingWidth, 30, 210);
+    buildCrossFadeControl("Cross Fade", effectiveWidth, paddingWidth, 30, 240);
 
     countDisplay();
     __("#sine").play();
