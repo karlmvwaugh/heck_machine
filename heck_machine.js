@@ -355,9 +355,17 @@ var homeScreen = function() {
 container = initD3();
 homeScreen();
 
-const init = function(event) {
+const mouseDown = function(event) {
     if (initted) {
         controls.clicker(event);
+        //mark drag in progress on event
+        //then mark mouse moves? perhaps?
+    }
+};
+
+const init = function(event) {
+    if (initted) {
+        //controls.clicker(event);
         return;
     }
     initted = true;
@@ -402,7 +410,7 @@ const init = function(event) {
     // REWIRE second to allow more controls.
     //
     // Work out how to deploy this mofo (ish - does it change on change)
-    //
+    // Drag the dials.
     // *//
 
 
