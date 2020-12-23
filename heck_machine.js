@@ -212,7 +212,33 @@ var countDisplay = function() {
     controls.setCallbacks("users", "count", updateFunction);
 };
 
+var homeScreen = function() {
+    var position = (paddingWidth + effectiveWidth)/2 - 140;
+
+    container.append("text")
+        .text("Heck Machine by Karl M V Waugh")
+        .attr("x", position)
+        .attr("y", 100)
+        .style("font-size", "34px")
+        .attr("fill", "white");
+
+    container.append("text")
+        .text("A Synth Room For All To Share")
+        .attr("x", position)
+        .attr("y", 130)
+        .style("font-size", "24px")
+        .attr("fill", "white");
+
+    container.append("text")
+        .text("Click Anywhere To Begin!")
+        .attr("x", position)
+        .attr("y", 160)
+        .style("font-size", "24px")
+        .attr("fill", "white");
+};
+
 container = initD3();
+homeScreen();
 
 const init = function(event) {
     if (initted) {
@@ -220,6 +246,8 @@ const init = function(event) {
         return;
     }
     initted = true;
+
+    container.selectAll("text").transition().duration(500).style("opacity", 0).remove();
 
     initSounds();
 
@@ -258,8 +286,7 @@ const init = function(event) {
     // interrupted transitions occasionally (colour transition interrupting position transition? do it with groupings?)
     //
     //
-    // Break into seperate git project
-    // Work out how to deploy this mofo
+    // Work out how to deploy this mofo (ish - does it change on change)
     //
     // *//
 
