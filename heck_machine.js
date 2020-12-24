@@ -17,9 +17,16 @@ var state = {
     squareWave: {frequency: 150},
     squareOsc: {gain: 10, frequency: 0.1},
     tremelo2: {frequency: 0.5, gain: 0.3},
-    kaosGain: {gain: 0},
-    kaosSquare: {frequency: 400},
-    kaosDelay: {delay: 1},
+    // kaosGain: {gain: 0},
+    // kaosSquare: {frequency: 400},
+    // kaosDelay: {delay: 1},
+    kaos: { settings: {
+            on: false,
+            x: 0,
+            y: 0,
+            freq: 150,
+            lowpass: 300
+        }},
     users: {count: 0}
 };
 
@@ -118,12 +125,18 @@ const initD3 = function() {
 
 const initSounds = function() {
     //kaos pad
-    __().saw({id: "kaosSquare", frequency:400,gain:1})
+    __().saw({id: "kaosSaw", frequency:400,gain:1})
+        .gain({id: "kaosSawVolume", gain: 1})
         .lowpass({id: "kaosLowPass", frequency: 500})
         .gain({id: "kaosGain", gain: 0});
 
+    __().sine({id: "kaosSine", frequency: 400, gain: 0})
+        .gain({id: "kaosSineVolume", gain: 0})
+        .connect("kaosLowpass");
+
 
     __().gain({id: "MG3", gain: 1})
+        .gain({id: "MG4", gain: 0.7}) //private adjustment
         .dac();
     __().delay({delay: 1, feedback: 0.3, cutoff: 1500, id: "kaosDelay"}).connect("#MG3");
 
@@ -362,7 +375,24 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
         .attr("fill", "grey")
         .style("opacity", 1); //0.5 if we want them to overlap
 
+    const releaseTheNode = function(x, y) {
+      var newX = x; //startWidth + x*width;
+      var newY = y; //startHeight + y*height;
 
+      var node = container.append("circle")
+          .attr("cx", newX)
+          .attr("cy", newY)
+          .attr("r", 0)
+          .attr("fill", "none")
+          .attr("stroke", "red")
+          .attr("stroke-width", "1px")
+          .style("opacity", 1);
+
+      node.transition().duration(5000)
+          .attr("r", 1000)
+          .style("opacity", 0)
+          .remove();
+    };
 
     const coordsInRange = function (x, y) {
         return (x > startWidth && x < startWidth + width && y > startHeight && y < startHeight + height);
@@ -370,66 +400,54 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
 
     const clickFunction = function(x, y) {
         if (coordsInRange(x, y)) {
-            controls.dispatcher("kaosGain", "gain", 1);
-
-
             var xShare = (x - startWidth) / (width);
             var freq = 150 + 350*xShare;
-            controls.dispatcher("kaosSquare", "frequency", freq);
-
-
 
             var yShare = (y - startHeight) / height;
-            var delay = 100 + 1500*(1-yShare);
-            controls.dispatcher("kaosDelay", "delay", delay);
+            var obj = {
+                on: true,
+                x: x,
+                y: y,
+                freq: freq,
+                split: yShare
+            };
+
+            controls.dispatcher("kaos", "settings", obj);
         } else {
-            controls.dispatcher("kaosGain", "gain", 0);
+            var previous = state.kaos.settings;
+            var obj = {
+                on: false,
+                x: previous.x,
+                y: previous.y,
+                freq: previous.freq,
+                split: previous.split
+            };
+
+            controls.dispatcher("kaos", "settings", obj);
         }
     };
 
     controls.mouseOverCallbacks.push(clickFunction);
 
-    const gainFunction = function (updateValue) {
-        currentValue = updateValue;
+    const callback = function (updateValue) {
+        var gain = updateValue.on ? 1 : 0;
 
-        __("#kaosGain").ramp(updateValue, 0.1, "gain");
-        // __("#" + valueName).ramp(updateValue,0.1,property);
-        //
-        // circleGroup.transition()
-        //     .duration(100)
-        //     .attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")")
-        //     .ease("linear");
+
+        __("#kaosGain").ramp(gain, 0.1, "gain");
+        __("#kaosSaw").ramp(updateValue.freq, 0.1, "frequency");
+        __("#kaosSine").ramp(updateValue.freq, 0.1, "frequency");
+
+        __("#kaosSawVolume").ramp(1 - updateValue.split, 0.1, "gain");
+        __("#kaosSineVolume").ramp(updateValue.split, 0.1, "gain");
+
+        if (updateValue.on) {
+            releaseTheNode(updateValue.x, updateValue.y);
+        }
+
+        // __("#kaosLowpass").ramp(updateValue.lowpass, 0.1, "frequency");
+
     };
-    controls.setCallbacks("kaosGain", "gain", gainFunction);
-
-    const freqFunction = function (updateValue) {
-        currentValue = updateValue;
-
-        __("#kaosSquare").ramp(updateValue, 0.1, "frequency");
-        // __("#" + valueName).ramp(updateValue,0.1,property);
-        //
-        // circleGroup.transition()
-        //     .duration(100)
-        //     .attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")")
-        //     .ease("linear");
-    };
-    controls.setCallbacks("kaosSquare", "frequency", freqFunction);
-
-    const delayFunction = function (updateValue) {
-        currentValue = updateValue;
-
-        //__("#kaosDelay").ramp(updateValue, 0.1, "delay");
-        __("#kaosLowpass").ramp(updateValue, 0.1, "frequency");
-
-
-        // __("#" + valueName).ramp(updateValue,0.1,property);
-        //
-        // circleGroup.transition()
-        //     .duration(100)
-        //     .attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")")
-        //     .ease("linear");
-    };
-    controls.setCallbacks("kaosDelay", "delay", delayFunction);
+    controls.setCallbacks("kaos", "settings", callback);
 };
 
 
