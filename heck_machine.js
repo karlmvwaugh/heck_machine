@@ -73,8 +73,6 @@ var controls = {
       controls.mouseOverCallbacks.map(clickMethod => clickMethod(x, y));
     },
     reciever: function(valueName, property, value) {
-        console.log(valueName + "set to" + value);
-
         controls.effectCallbacks[valueName][property](value);
         state[valueName][property] = value;
     },
@@ -119,6 +117,26 @@ const initD3 = function() {
 
 
 const initSounds = function() {
+    //kaos pad
+    __().saw({id: "kaosSquare", frequency:400,gain:1})
+        .lowpass({id: "kaosLowPass", frequency: 500})
+        .gain({id: "kaosGain", gain: 0});
+
+
+    __().gain({id: "MG3", gain: 1})
+        .dac();
+    __().delay({delay: 1, feedback: 0.3, cutoff: 1500, id: "kaosDelay"}).connect("#MG3");
+
+
+
+
+
+    __("#kaosGain").connect("#kaosDelay");
+    __("#kaosGain").connect("#MG3");
+
+
+
+//left panel
     __().gain({id: "MG1", gain: 0.7})
         .dac();
 
@@ -131,34 +149,28 @@ const initSounds = function() {
     __("#gain").gain({id: "drySignal", gain: 1}).connect("#MG1");
     __("#gain").connect("#delay");
 
-
-
-
-
-
     __().lfo({id: "tremelo", frequency:4 ,modulates:"gain",gain:1,type:"square"}).connect("#gain");
     __().lfo({id: "pitch", frequency:0.15 ,modulates:"frequency",gain:100,type:"sine"}).connect("#sine");
     __().lfo({id: "pitch2", frequency:0.1 ,modulates:"gain",gain:5,type:"sine"}).connect("#pitch");
 
 
-    __().square({id: "squareWave", frequency:150,gain:1})
-        .gain({id: "gain2", gain: 1})
-        .delay({delay: 2, feedback: 0.5, cutoff: 1500, id: "delay2"})
-        .gain({id: "MG2", gain: 0.3})
+    //second
+    __().gain({id: "MG2", gain: 0.3})
         .dac();
+
+    __().delay({delay: 2, feedback: 0.5, cutoff: 1500, id: "delay2"})
+        .connect("#MG2");
+
+
+    __().square({id: "squareWave", frequency:150,gain:1})
+        .gain({id: "gain2", gain: 1});
+
+    __("#gain2").connect("#delay2");
+    __("#gain2").gain({id: "drySignal2", gain: 1}).connect("#MG2");
 
      __().lfo({id: "squareOsc", frequency:0.1 ,modulates:"frequency",gain:10,type:"sine"}).connect("#squareWave");
     __().lfo({id: "tremelo2", frequency:0.5 ,modulates:"gain",gain:0.3, type:"sine"}).connect("#gain2");
 
-
-
-    //kaos pad
-    __().square({id: "kaosSquare", frequency:400,gain:1})
-        .lowpass({id: "kaosLowPass", frequency: 500})
-        .gain({id: "kaosGain", gain: 0})
-        .delay({delay: 1, feedback: 0.6, cutoff: 1500, id: "kaosDelay"})
-        .gain({id: "MG3", gain: 1})
-        .dac();
 
 
 
@@ -368,7 +380,7 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
 
 
             var yShare = (y - startHeight) / height;
-            var delay = 0.1 + 1.9*(1-yShare);
+            var delay = 100 + 1500*(1-yShare);
             controls.dispatcher("kaosDelay", "delay", delay);
         } else {
             controls.dispatcher("kaosGain", "gain", 0);
@@ -380,7 +392,6 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
     const gainFunction = function (updateValue) {
         currentValue = updateValue;
 
-        console.log("Update kaos Gain to " + updateValue);
         __("#kaosGain").ramp(updateValue, 0.1, "gain");
         // __("#" + valueName).ramp(updateValue,0.1,property);
         //
@@ -394,7 +405,6 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
     const freqFunction = function (updateValue) {
         currentValue = updateValue;
 
-        console.log("Update kaos frequency to " + updateValue);
         __("#kaosSquare").ramp(updateValue, 0.1, "frequency");
         // __("#" + valueName).ramp(updateValue,0.1,property);
         //
@@ -408,8 +418,10 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
     const delayFunction = function (updateValue) {
         currentValue = updateValue;
 
-        console.log("Update kaos delay to " + updateValue);
-        __("#kaosDelay").ramp(updateValue, 0.1, "delay");
+        //__("#kaosDelay").ramp(updateValue, 0.1, "delay");
+        __("#kaosLowpass").ramp(updateValue, 0.1, "frequency");
+
+
         // __("#" + valueName).ramp(updateValue,0.1,property);
         //
         // circleGroup.transition()
@@ -514,7 +526,7 @@ const init = function(event) {
 
     buildCrossFadeControl("Cross Fade", effectiveWidth, paddingWidth, 30, 240);
 
-    var kaosWidth = itemWidth*4/5
+    var kaosWidth = itemWidth*4/5;
     buildKaosControl(kaosWidth, leftPad, kaosWidth, 280);
 
     countDisplay();
