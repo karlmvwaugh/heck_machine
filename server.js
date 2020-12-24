@@ -45,6 +45,10 @@ io.on('connection', (socket) => {
     socket.on('dial move', (msg) => {
         console.log("Msg: " + msg.valueName + ":" + msg.property + "=" + msg.value);
 
+        if (!state[msg.valueName]) {
+            state[msg.valueName] = {};
+        }
+
         state[msg.valueName][msg.property] = msg.value;
 
         socket.broadcast.emit('dial move', msg);

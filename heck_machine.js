@@ -17,6 +17,9 @@ var state = {
     squareWave: {frequency: 150},
     squareOsc: {gain: 10, frequency: 0.1},
     tremelo2: {frequency: 0.5, gain: 0.3},
+    kaosGain: {gain: 0},
+    kaosSquare: {frequency: 400},
+    kaosDelay: {delay: 1},
     users: {count: 0}
 };
 
@@ -50,6 +53,7 @@ var controls = {
     mouseIsDown: false,
     effectCallbacks: {},
     sliderCallbacks: [],
+    mouseOverCallbacks: [],
     mouseDown: function(event) {
         var x = event.clientX;
         var y = event.clientY;
@@ -58,14 +62,15 @@ var controls = {
     mouseUp: function(event) {
     },
     mouseMove: function(event) {
+        var x = event.clientX;
+        var y = event.clientY;
+
       if (event.buttons === 1 || event.buttons === 3) {
-          var x = event.clientX;
-          var y = event.clientY;
           controls.sliderCallbacks.map(clickMethod => clickMethod(x, y));
       }
 
-      //add mousemoveevent listeners here on a similar sliderCallbacks.
 
+      controls.mouseOverCallbacks.map(clickMethod => clickMethod(x, y));
     },
     reciever: function(valueName, property, value) {
         console.log(valueName + "set to" + value);
@@ -144,6 +149,19 @@ const initSounds = function() {
 
      __().lfo({id: "squareOsc", frequency:0.1 ,modulates:"frequency",gain:10,type:"sine"}).connect("#squareWave");
     __().lfo({id: "tremelo2", frequency:0.5 ,modulates:"gain",gain:0.3, type:"sine"}).connect("#gain2");
+
+
+
+    //kaos pad
+    __().square({id: "kaosSquare", frequency:400,gain:1})
+        .lowpass({id: "kaosLowPass", frequency: 500})
+        .gain({id: "kaosGain", gain: 0})
+        .delay({delay: 1, feedback: 0.6, cutoff: 1500, id: "kaosDelay"})
+        .gain({id: "MG3", gain: 1})
+        .dac();
+
+
+
 };
 
 const buildSlideControl = function(description, valueName, property, minimumValue, maximumValue, width, startWidth, height, startHeight) {
@@ -320,6 +338,89 @@ const buildCrossFadeControl = function(description, width, startWidth, height, s
     controls.setCallbacks("crossfade", "volume", updateFunction);
 };
 
+
+const buildKaosControl = function(width, startWidth, height, startHeight) {
+    // var currentValue = state[valueName][property];
+
+    var square = container.append("rect")
+        .attr("x", startWidth)
+        .attr("y", startHeight)
+        .attr("width", width)
+        .attr("height", height)
+        .attr("fill", "grey")
+        .style("opacity", 1); //0.5 if we want them to overlap
+
+
+
+    const coordsInRange = function (x, y) {
+        return (x > startWidth && x < startWidth + width && y > startHeight && y < startHeight + height);
+    };
+
+    const clickFunction = function(x, y) {
+        if (coordsInRange(x, y)) {
+            controls.dispatcher("kaosGain", "gain", 1);
+
+
+            var xShare = (x - startWidth) / (width);
+            var freq = 150 + 350*xShare;
+            controls.dispatcher("kaosSquare", "frequency", freq);
+
+
+
+            var yShare = (y - startHeight) / height;
+            var delay = 0.1 + 1.9*(1-yShare);
+            controls.dispatcher("kaosDelay", "delay", delay);
+        } else {
+            controls.dispatcher("kaosGain", "gain", 0);
+        }
+    };
+
+    controls.mouseOverCallbacks.push(clickFunction);
+
+    const gainFunction = function (updateValue) {
+        currentValue = updateValue;
+
+        console.log("Update kaos Gain to " + updateValue);
+        __("#kaosGain").ramp(updateValue, 0.1, "gain");
+        // __("#" + valueName).ramp(updateValue,0.1,property);
+        //
+        // circleGroup.transition()
+        //     .duration(100)
+        //     .attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")")
+        //     .ease("linear");
+    };
+    controls.setCallbacks("kaosGain", "gain", gainFunction);
+
+    const freqFunction = function (updateValue) {
+        currentValue = updateValue;
+
+        console.log("Update kaos frequency to " + updateValue);
+        __("#kaosSquare").ramp(updateValue, 0.1, "frequency");
+        // __("#" + valueName).ramp(updateValue,0.1,property);
+        //
+        // circleGroup.transition()
+        //     .duration(100)
+        //     .attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")")
+        //     .ease("linear");
+    };
+    controls.setCallbacks("kaosSquare", "frequency", freqFunction);
+
+    const delayFunction = function (updateValue) {
+        currentValue = updateValue;
+
+        console.log("Update kaos delay to " + updateValue);
+        __("#kaosDelay").ramp(updateValue, 0.1, "delay");
+        // __("#" + valueName).ramp(updateValue,0.1,property);
+        //
+        // circleGroup.transition()
+        //     .duration(100)
+        //     .attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")")
+        //     .ease("linear");
+    };
+    controls.setCallbacks("kaosDelay", "delay", delayFunction);
+};
+
+
 var countDisplay = function() {
     var text = container.append("text")
         .text(state.users.count)
@@ -413,9 +514,13 @@ const init = function(event) {
 
     buildCrossFadeControl("Cross Fade", effectiveWidth, paddingWidth, 30, 240);
 
+    var kaosWidth = itemWidth*4/5
+    buildKaosControl(kaosWidth, leftPad, kaosWidth, 280);
+
     countDisplay();
     __("#sine").play();
     __("#squareWave").play();
+    __("#kaosSquare").play();
 
     window.setTimeout(initSocket, 100);
     // initSocket();
