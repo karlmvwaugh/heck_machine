@@ -20,23 +20,69 @@ app.get('/cracked.js', (req, res) => {
 
 
 var state = {
-    // crossfade: {volume: 0.3},
-    // tremelo: { frequency: 4},
-    // lowpass1: {frequency: 150},
-    // pitch: {frequency: 0.15},
-    // pitch2: {gain: 5},
-    // delay: {delay: 0.5, feedback: 0.3},
-    // drySignal: {gain: 1},
-    // squareWave: {frequency: 150},
-    // squareOsc: {gain: 10, frequency: 0.1},
-    // tremelo2: {frequency: 0.5, gain: 0.3},
-    // kaosGain: {gain: 0},
-    // kaosSquare: {frequency: 400},
-    // kaosDelay: {delay: 1},
     users: {count: 0}
 };
 
+const activeConnections = {};
+
+const drifters = [
+    {valueName: 'tremelo', property: 'frequency', min: 0, max: 20, step: 0.02},
+    {valueName: 'lowpass1', property: 'frequency', min: 0, max: 500, step: 0.5},
+    {valueName: 'pitch', property: 'frequency', min: 0, max: 2, step: 0.002},
+    {valueName: 'pitch2', property: 'gain', min: 0, max: 100, step: 0.1},
+    {valueName: 'delay', property: 'delay', min: 0, max: 2, step: 0.002},
+    {valueName: 'delay', property: 'feedback', min: 0, max: 1, step: 0.001},
+    {valueName: 'drySignal', property: 'gain', min: 0, max: 1, step: 0.001},
+
+
+    {valueName: 'squareWave', property: 'frequency', min: 0, max: 200, step: 0.2},
+    {valueName: 'squareOsc', property: 'frequency', min: 0, max: 20, step: 0.02},
+    {valueName: 'squareOsc', property: 'gain', min: 0, max: 100, step: 0.1},
+    {valueName: 'tremelo2', property: 'frequency', min: 0, max: 20, step: 0.02},
+    {valueName: 'tremelo2', property: 'gain', min: 0, max: 1, step: 0.001},
+    {valueName: 'delay2', property: 'delay', min: 0, max: 2, step: 0.002},
+    {valueName: 'delay2', property: 'feedback', min: 0, max: 1, step: 0.001},
+    {valueName: 'drySignal2', property: 'gain', min: 0, max: 1, step: 0.001}
+];
+
+
+const driftLoop = function() {
+    for (var key in activeConnections) {
+        if (activeConnections.hasOwnProperty(key)) {
+            var socket = activeConnections[key];
+
+            var msg = { valueName: 'users', property: 'count', value: state.users.count};
+            socket.emit('dial move', msg);
+
+            drifters.map(driftSetting => {
+                if (state[driftSetting.valueName] && state[driftSetting.valueName][driftSetting.property]) {
+                    console.log("changing " + driftSetting.valueName + ":" + driftSetting.property);
+
+                    state[driftSetting.valueName][driftSetting.property] += driftSetting.step * (Math.random() < 0.5 ? 1 : -1) * (0.5 + Math.random());
+
+                    var msg = {valueName: driftSetting.valueName, property: driftSetting.property, value: state[driftSetting.valueName][driftSetting.property]}
+                    socket.emit('dial move', msg);
+                }
+            });
+
+        }
+    }
+
+
+    setTimeout(driftLoop, 1000);
+};
+
+driftLoop();
+
+const randomKey = function() {
+    return "a" + Math.round(Math.random() * 10000);
+};
+
+
 io.on('connection', (socket) => {
+    const connectionId = randomKey();
+    activeConnections[connectionId] = socket;
+
     state.users.count = state.users.count + 1;
     console.log('a user connected' + state.users.count);
     var msg = { valueName: 'users', property: 'count', value: state.users.count};
@@ -53,6 +99,8 @@ io.on('connection', (socket) => {
 
         state[msg.valueName][msg.property] = msg.value;
 
+        //update drift settings
+
         socket.broadcast.emit('dial move', msg);
     });
 
@@ -60,8 +108,7 @@ io.on('connection', (socket) => {
         state.users.count = state.users.count - 1;
         console.log('a user disconnected ' + state.users.count);
 
-        var msg = { valueName: 'users', property: 'count', value: state.users.count};
-        socket.broadcast.emit('dial move', msg);
+        delete activeConnections[connectionId];
     });
 
 

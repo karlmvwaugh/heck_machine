@@ -27,6 +27,8 @@ var state = {
             freq: 150,
             lowpass: 300
         }},
+    delay2: {delay: 0.5, feedback: 0.3},
+    drySignal2: {gain: 1},
     users: {count: 0}
 };
 
@@ -128,6 +130,7 @@ const initSounds = function() {
     __().saw({id: "kaosSaw", frequency:400,gain:1})
         .gain({id: "kaosSawVolume", gain: 1})
         .lowpass({id: "kaosLowPass", frequency: 500})
+        .gain({id: "kaosTremGain", gain: 1})
         .gain({id: "kaosGain", gain: 0});
 
     __().sine({id: "kaosSine", frequency: 400, gain: 0})
@@ -136,10 +139,11 @@ const initSounds = function() {
 
 
     __().gain({id: "MG3", gain: 1})
-        .gain({id: "MG4", gain: 0.7}) //private adjustment
+        .gain({id: "MG4", gain: 0.8}) //private adjustment
         .dac();
     __().delay({delay: 1, feedback: 0.3, cutoff: 1500, id: "kaosDelay"}).connect("#MG3");
 
+    __().lfo({id: "kaosTremelo", frequency:8 ,modulates:"gain",gain:1,type:"sine"}).connect("#kaosTremGain");
 
 
 
@@ -219,7 +223,8 @@ const buildSlideControl = function(description, valueName, property, minimumValu
         .attr("y", startHeight + 18)
         .style("font-size", "14px")
         .attr("fill", "white")
-        .style("opacity", 0.7);
+        .style("opacity", 0.7)
+        .style("pointer-events", "none");
 
 
     var circleGroup = container.append("g")
@@ -430,7 +435,7 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
     controls.mouseOverCallbacks.push(clickFunction);
 
     const callback = function (updateValue) {
-        var gain = updateValue.on ? 1 : 0;
+        const gain = updateValue.on ? 1 : 0;
 
 
         __("#kaosGain").ramp(gain, 0.1, "gain");
@@ -439,6 +444,7 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
 
         __("#kaosSawVolume").ramp(1 - updateValue.split, 0.1, "gain");
         __("#kaosSineVolume").ramp(updateValue.split, 0.1, "gain");
+        __("#kaosTremelo").ramp(1 - updateValue.split, 0.1, "gain");
 
         if (updateValue.on) {
             releaseTheNode(updateValue.x, updateValue.y);
@@ -527,25 +533,28 @@ const init = function(event) {
     var itemWidth = effectiveWidth / 2;
     var secondPad = itemWidth + 2*leftPad;
 
-    buildSlideControl("Tremelo Speed", "tremelo", "frequency",0, 20, itemWidth, leftPad, 30, 30);
-    buildSlideControl("Low Pass", "lowpass1", "frequency",0, 500, itemWidth, leftPad, 30, 60);
-    buildSlideControl("Pitch Wobble Speed", "pitch", "frequency", 0, 2, itemWidth, leftPad, 30, 90);
-    buildSlideControl("Pitch Wobble Amount", "pitch2", "gain",0, 100, itemWidth, leftPad, 30, 120);
-    buildSlideControl("Delay Time", "delay", "delay",0, 2, itemWidth, leftPad, 30, 150);
-    buildSlideControl("Delay Feedback", "delay", "feedback",0, 1, itemWidth, leftPad, 30, 180);
-    buildSlideControl("Dry Delay", "drySignal", "gain",0, 1, itemWidth, leftPad, 30, 210);
+    buildSlideControl("Tremelo Speed", "tremelo", "frequency",0, 20, itemWidth, leftPad, 20, 30);
+    buildSlideControl("Low Pass", "lowpass1", "frequency",0, 500, itemWidth, leftPad, 20, 50);
+    buildSlideControl("Pitch Wobble Speed", "pitch", "frequency", 0, 2, itemWidth, leftPad, 20, 70);
+    buildSlideControl("Pitch Wobble Amount", "pitch2", "gain",0, 100, itemWidth, leftPad, 20, 90);
+    buildSlideControl("Delay Time", "delay", "delay",0, 2, itemWidth, leftPad, 20, 110);
+    buildSlideControl("Delay Feedback", "delay", "feedback",0, 1, itemWidth, leftPad, 20, 130);
+    buildSlideControl("Dry Delay", "drySignal", "gain",0, 1, itemWidth, leftPad, 20, 150);
 
 
-    buildSlideControl("Frequency", "squareWave", "frequency",0, 200, itemWidth, secondPad, 30, 30);
-    buildSlideControl("Pitch Wobble Speed", "squareOsc", "frequency",0, 20, itemWidth, secondPad, 30, 60);
-    buildSlideControl("Pitch Wobble Amount", "squareOsc", "gain",0, 100, itemWidth, secondPad, 30, 90);
-    buildSlideControl("Tremelo Speed", "tremelo2", "frequency",0, 20, itemWidth, secondPad, 30, 120);
-    buildSlideControl("Tremelo Amount", "tremelo2", "gain",0, 1, itemWidth, secondPad, 30, 150);
+    buildSlideControl("Frequency", "squareWave", "frequency",0, 200, itemWidth, secondPad, 20, 30);
+    buildSlideControl("Pitch Wobble Speed", "squareOsc", "frequency",0, 20, itemWidth, secondPad, 20, 50);
+    buildSlideControl("Pitch Wobble Amount", "squareOsc", "gain",0, 100, itemWidth, secondPad, 20, 70);
+    buildSlideControl("Tremelo Speed", "tremelo2", "frequency",0, 20, itemWidth, secondPad, 20, 90);
+    buildSlideControl("Tremelo Amount", "tremelo2", "gain",0, 1, itemWidth, secondPad, 20, 110);
+    buildSlideControl("Delay Time", "delay2", "delay",0, 2, itemWidth, secondPad, 20, 130);
+    buildSlideControl("Delay Feedback", "delay2", "feedback",0, 1, itemWidth, secondPad, 20, 150);
+    buildSlideControl("Dry Delay", "drySignal2", "gain",0, 1, itemWidth, secondPad, 20, 170);
 
-    buildCrossFadeControl("Cross Fade", effectiveWidth, paddingWidth, 30, 240);
+    buildCrossFadeControl("Cross Fade", effectiveWidth, paddingWidth, 30, 190);
 
-    var kaosWidth = itemWidth*4/5;
-    buildKaosControl(kaosWidth, leftPad, kaosWidth, 280);
+    var kaosWidth = itemWidth*3/5;
+    buildKaosControl(kaosWidth, leftPad, kaosWidth, 220);
 
     countDisplay();
     __("#sine").play();
@@ -557,16 +566,15 @@ const init = function(event) {
 
     //*
     // CHANGES:
-    // kaos pad section
-    // mini-chat window,
-    // online counter (working ish)
+    // kaos pad section (colouration? another?)
+    // mini-chat window, / chat feature?
     // more controls on current things (osc speed, depth, second delay time etc.) - dry delay etc
+    // ADD REVERB, allow ambience controls. 
     // Different colourings on different control sections (perhaps?) (colourschemes)
-    // relative volume controls. /. crossfade for 2 sections
-    // REWIRE second to allow more controls.
+    //
     //
     // Work out how to deploy this mofo (ish - does it change on change)
-    // Drag the dials.
+    // Drag the dials. Phone controls. Touch etc.
     //
     // make new settings easier to insert (agnostic backend/state model)
     // logarhythmic and/or linear scales on different sliders
