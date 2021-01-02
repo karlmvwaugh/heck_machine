@@ -193,7 +193,12 @@ const initSounds = function() {
 
 };
 
-const buildSlideControl = function(description, valueName, property, minimumValue, maximumValue, width, startWidth, height, startHeight) {
+const colourScheme = {
+    0: {upDial: "#AA00FF", downDial: "#00FFA0", upDot: "#FFAA00", downDot: "#FF000A"},
+    1: {upDial: "#0AAA0A", downDial: "#FF00AA", upDot: "#00AAFF", downDot: "#F0A0F0"}
+};
+
+const buildSlideControl = function(description, valueName, property, minimumValue, maximumValue, width, startWidth, height, startHeight, colourSchemeNumber) {
     var getCoord = function(value) {
         const share = (value - minimumValue) / (maximumValue - minimumValue);
 
@@ -202,7 +207,7 @@ const buildSlideControl = function(description, valueName, property, minimumValu
 
     var currentValue = state[valueName][property];
 
-    var ellipseIsGreen = true;
+    var ellipseIsUp = true;
 
     var getDuration = function() {
         var share = (currentValue - minimumValue) / (maximumValue - minimumValue);
@@ -241,16 +246,19 @@ const buildSlideControl = function(description, valueName, property, minimumValu
         .attr("cy", 0)
         .style("opacity", 1);
 
+    const colours = colourScheme[colourSchemeNumber];
+
     var colourLoop = function() {
         var duration = getDuration();
+
         ellipse.transition().duration(duration)
-            .attr("fill", ellipseIsGreen ? "purple" : "green");
+            .attr("fill", ellipseIsUp ? colours.upDial : colours.downDial);
 
         circle.transition().duration(duration)
-            .attr("fill", ellipseIsGreen ? "orange" : "red");
+            .attr("fill", ellipseIsUp ? colours.upDot : colours.downDot);
 
 
-        ellipseIsGreen = !ellipseIsGreen;
+        ellipseIsUp = !ellipseIsUp;
 
         window.setTimeout(colourLoop, duration);
     };
@@ -533,23 +541,23 @@ const init = function(event) {
     var itemWidth = effectiveWidth / 2;
     var secondPad = itemWidth + 2*leftPad;
 
-    buildSlideControl("Tremelo Speed", "tremelo", "frequency",0, 20, itemWidth, leftPad, 20, 30);
-    buildSlideControl("Low Pass", "lowpass1", "frequency",0, 500, itemWidth, leftPad, 20, 50);
-    buildSlideControl("Pitch Wobble Speed", "pitch", "frequency", 0, 2, itemWidth, leftPad, 20, 70);
-    buildSlideControl("Pitch Wobble Amount", "pitch2", "gain",0, 100, itemWidth, leftPad, 20, 90);
-    buildSlideControl("Delay Time", "delay", "delay",0, 2, itemWidth, leftPad, 20, 110);
-    buildSlideControl("Delay Feedback", "delay", "feedback",0, 1, itemWidth, leftPad, 20, 130);
-    buildSlideControl("Dry Delay", "drySignal", "gain",0, 1, itemWidth, leftPad, 20, 150);
+    buildSlideControl("Tremelo Speed", "tremelo", "frequency",0, 20, itemWidth, leftPad, 20, 30, 0);
+    buildSlideControl("Low Pass", "lowpass1", "frequency",0, 500, itemWidth, leftPad, 20, 50, 0);
+    buildSlideControl("Pitch Wobble Speed", "pitch", "frequency", 0, 2, itemWidth, leftPad, 20, 70, 0);
+    buildSlideControl("Pitch Wobble Amount", "pitch2", "gain",0, 100, itemWidth, leftPad, 20, 90, 0);
+    buildSlideControl("Delay Time", "delay", "delay",0, 2, itemWidth, leftPad, 20, 110, 0);
+    buildSlideControl("Delay Feedback", "delay", "feedback",0, 1, itemWidth, leftPad, 20, 130, 0);
+    buildSlideControl("Dry Delay", "drySignal", "gain",0, 1, itemWidth, leftPad, 20, 150, 0);
 
 
-    buildSlideControl("Frequency", "squareWave", "frequency",0, 200, itemWidth, secondPad, 20, 30);
-    buildSlideControl("Pitch Wobble Speed", "squareOsc", "frequency",0, 20, itemWidth, secondPad, 20, 50);
-    buildSlideControl("Pitch Wobble Amount", "squareOsc", "gain",0, 100, itemWidth, secondPad, 20, 70);
-    buildSlideControl("Tremelo Speed", "tremelo2", "frequency",0, 20, itemWidth, secondPad, 20, 90);
-    buildSlideControl("Tremelo Amount", "tremelo2", "gain",0, 1, itemWidth, secondPad, 20, 110);
-    buildSlideControl("Delay Time", "delay2", "delay",0, 2, itemWidth, secondPad, 20, 130);
-    buildSlideControl("Delay Feedback", "delay2", "feedback",0, 1, itemWidth, secondPad, 20, 150);
-    buildSlideControl("Dry Delay", "drySignal2", "gain",0, 1, itemWidth, secondPad, 20, 170);
+    buildSlideControl("Frequency", "squareWave", "frequency",0, 200, itemWidth, secondPad, 20, 30, 1);
+    buildSlideControl("Pitch Wobble Speed", "squareOsc", "frequency",0, 20, itemWidth, secondPad, 20, 50, 1);
+    buildSlideControl("Pitch Wobble Amount", "squareOsc", "gain",0, 100, itemWidth, secondPad, 20, 70, 1);
+    buildSlideControl("Tremelo Speed", "tremelo2", "frequency",0, 20, itemWidth, secondPad, 20, 90, 1);
+    buildSlideControl("Tremelo Amount", "tremelo2", "gain",0, 1, itemWidth, secondPad, 20, 110, 1);
+    buildSlideControl("Delay Time", "delay2", "delay",0, 2, itemWidth, secondPad, 20, 130, 1);
+    buildSlideControl("Delay Feedback", "delay2", "feedback",0, 1, itemWidth, secondPad, 20, 150, 1);
+    buildSlideControl("Dry Delay", "drySignal2", "gain",0, 1, itemWidth, secondPad, 20, 170, 1);
 
     buildCrossFadeControl("Cross Fade", effectiveWidth, paddingWidth, 30, 190);
 
@@ -569,7 +577,7 @@ const init = function(event) {
     // kaos pad section (colouration? another?)
     // mini-chat window, / chat feature?
     // more controls on current things (osc speed, depth, second delay time etc.) - dry delay etc
-    // ADD REVERB, allow ambience controls. 
+    // ADD REVERB, allow ambience controls.
     // Different colourings on different control sections (perhaps?) (colourschemes)
     //
     //
