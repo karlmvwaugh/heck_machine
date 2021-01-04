@@ -317,8 +317,8 @@ const buildCrossFadeControl = function(description, width, startWidth, height, s
         .attr("y", startHeight + 18)
         .style("font-size", "14px")
         .attr("fill", "white")
-        .style("opacity", 0.7);
-
+        .style("opacity", 0.7)
+        .style("pointer-events", "none");
 
     var circleGroup = container.append("g")
         .attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")");
@@ -379,6 +379,8 @@ const buildCrossFadeControl = function(description, width, startWidth, height, s
 
 const buildKaosControl = function(width, startWidth, height, startHeight) {
     // var currentValue = state[valueName][property];
+    var myId = Math.round(Math.random()*1000);
+
 
     var square = container.append("rect")
         .attr("x", startWidth)
@@ -388,16 +390,13 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
         .attr("fill", "grey")
         .style("opacity", 1); //0.5 if we want them to overlap
 
-    const releaseTheNode = function(x, y) {
-      var newX = x; //startWidth + x*width;
-      var newY = y; //startHeight + y*height;
-
+    const releaseTheNode = function(x, y, id) {
       var node = container.append("circle")
-          .attr("cx", newX)
-          .attr("cy", newY)
+          .attr("cx", x)
+          .attr("cy", y)
           .attr("r", 0)
           .attr("fill", "none")
-          .attr("stroke", "red")
+          .attr("stroke", id === myId ? "red" : "green")
           .attr("stroke-width", "1px")
           .style("opacity", 1);
 
@@ -419,10 +418,11 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
             var yShare = (y - startHeight) / height;
             var obj = {
                 on: true,
-                x: x,
-                y: y,
+                x: xShare,
+                y: yShare,
                 freq: freq,
-                split: yShare
+                split: yShare,
+                id: myId
             };
 
             controls.dispatcher("kaos", "settings", obj);
@@ -433,7 +433,8 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
                 x: previous.x,
                 y: previous.y,
                 freq: previous.freq,
-                split: previous.split
+                split: previous.split,
+                id: myId
             };
 
             controls.dispatcher("kaos", "settings", obj);
@@ -455,7 +456,14 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
         __("#kaosTremelo").ramp(1 - updateValue.split, 0.1, "gain");
 
         if (updateValue.on) {
-            releaseTheNode(updateValue.x, updateValue.y);
+            var xValue = updateValue.x*width + startWidth;
+            var yValue = updateValue.y*height + startHeight;
+            //            var xShare = (x - startWidth) / (width);
+            //             var freq = 150 + 350*xShare;
+            //
+            //             var yShare = (y - startHeight) / height;
+
+            releaseTheNode(xValue, yValue, updateValue.id);
         }
 
         // __("#kaosLowpass").ramp(updateValue.lowpass, 0.1, "frequency");
@@ -470,7 +478,8 @@ var countDisplay = function() {
         .text(state.users.count)
         .attr("x", effectiveWidth - paddingWidth)
         .attr("y", effectiveHeight - paddingWidth)
-        .attr("fill", "white");
+        .attr("fill", "white")
+        .style("pointer-events", "none");;
 
     const updateFunction = function (updateValue) {
         currentValue = updateValue;

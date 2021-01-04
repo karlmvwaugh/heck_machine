@@ -26,9 +26,9 @@ var state = {
 const activeConnections = {};
 
 const drifters = [
-    {valueName: 'tremelo', property: 'frequency', min: 0, max: 20, step: 0.02},
+    {valueName: 'tremelo', property: 'frequency', min: 0, max: 20, step: 0.01},
     {valueName: 'lowpass1', property: 'frequency', min: 0, max: 500, step: 0.5},
-    {valueName: 'pitch', property: 'frequency', min: 0, max: 2, step: 0.002},
+    {valueName: 'pitch', property: 'frequency', min: 0, max: 2, step: 0.005},
     {valueName: 'pitch2', property: 'gain', min: 0, max: 100, step: 0.1},
     {valueName: 'delay', property: 'delay', min: 0, max: 2, step: 0.002},
     {valueName: 'delay', property: 'feedback', min: 0, max: 1, step: 0.001},
@@ -36,9 +36,9 @@ const drifters = [
 
 
     {valueName: 'squareWave', property: 'frequency', min: 0, max: 200, step: 0.2},
-    {valueName: 'squareOsc', property: 'frequency', min: 0, max: 20, step: 0.02},
+    {valueName: 'squareOsc', property: 'frequency', min: 0, max: 20, step: 0.05},
     {valueName: 'squareOsc', property: 'gain', min: 0, max: 100, step: 0.1},
-    {valueName: 'tremelo2', property: 'frequency', min: 0, max: 20, step: 0.02},
+    {valueName: 'tremelo2', property: 'frequency', min: 0, max: 20, step: 0.05},
     {valueName: 'tremelo2', property: 'gain', min: 0, max: 1, step: 0.001},
     {valueName: 'delay2', property: 'delay', min: 0, max: 2, step: 0.002},
     {valueName: 'delay2', property: 'feedback', min: 0, max: 1, step: 0.001},
