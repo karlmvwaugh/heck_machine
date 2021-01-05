@@ -673,9 +673,6 @@ var homeScreen = function() {
 container = initD3();
 homeScreen();
 
-window.onkeydown = function(event) {
-    return event.key !== " ";
-};
 
 const init = function(event) {
     if (initted) {
