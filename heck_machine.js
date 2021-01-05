@@ -631,6 +631,13 @@ var homeScreen = function() {
         .attr("y", 230)
         .style("font-size", "24px")
         .attr("fill", "white");
+
+    container.append("text")
+        .text("Click, drag, move and type to change things....")
+        .attr("x", position)
+        .attr("y", 260)
+        .style("font-size", "24px")
+        .attr("fill", "white");
 };
 
 container = initD3();
