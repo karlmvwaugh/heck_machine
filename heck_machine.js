@@ -84,26 +84,27 @@ var controls = {
       controls.mouseOverCallbacks.map(clickMethod => clickMethod(x, y));
     },
     touchStart: function(event) {
-        event.preventDefault();
         var touches = event.changedTouches;
-        touches.map(touch => {
+        for (var i = 0; i < touches.length; i++) {
+            var touch = touches[i];
 
             var x = touch.clientX;
             var y = touch.clientY;
             controls.sliderCallbacks.map(clickMethod => clickMethod(x, y));
-        })
+        }
+
+
 
     },
     touchMove: function(event) {
-        event.preventDefault();
         var touches = event.changedTouches;
-        touches.map(touch => {
-
+        for (var i = 0; i < touches.length; i++) {
+            var touch = touches[i];
             var x = touch.clientX;
             var y = touch.clientY;
             controls.sliderCallbacks.map(clickMethod => clickMethod(x, y));
             controls.mouseOverCallbacks.map(clickMethod => clickMethod(x, y));
-        })
+        }
     },
 
     reciever: function(valueName, property, value) {
@@ -671,8 +672,8 @@ var homeScreen = function() {
 container = initD3();
 homeScreen();
 
-window.onkeydown = function(e) {
-    return ev.key !== " ";
+window.onkeydown = function(event) {
+    return event.key !== " ";
 };
 
 const init = function(event) {
@@ -682,12 +683,25 @@ const init = function(event) {
     }
     initted = true;
 
-    document.body.onmousedown = controls.mouseDown;
-    document.body.onmousemove = controls.mouseMove;
-    document.body.onkeypress = controls.keyPress;
+    document.body.addEventListener('mousedown', function (e) {
+        controls.mouseDown(e);
+    });
 
-    document.body.ontouchstart = controls.touchStart;
-    document.body.ontouchmove = controls.touchMove;
+    document.body.addEventListener('mousemove', function (e) {
+        controls.mouseMove(e);
+    });
+
+    document.body.addEventListener('keypress', function (e) {
+        controls.keyPress(e);
+    });
+
+    document.body.addEventListener('touchstart', function (e) {
+        controls.touchStart(e);
+    });
+
+    document.body.addEventListener('touchmove', function (e) {
+        controls.touchMove(e);
+    });
 
     container.selectAll("text").transition().duration(500).style("opacity", 0).remove();
 
