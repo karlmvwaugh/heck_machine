@@ -72,8 +72,6 @@ var controls = {
         var y = event.clientY;
         controls.sliderCallbacks.map(clickMethod => clickMethod(x, y));
     },
-    mouseUp: function(event) {
-    },
     mouseMove: function(event) {
         var x = event.clientX;
         var y = event.clientY;
@@ -638,32 +636,7 @@ var homeScreen = function() {
 container = initD3();
 homeScreen();
 
-const mouseDown = function(event) {
-    if (initted) {
-        controls.mouseDown(event);
-    }
-};
-
-const mouseUp = function(event) {
-    if (initted) {
-        controls.mouseUp(event);
-    }
-};
-
-const mouseMove = function(event) {
-    if (initted) {
-        controls.mouseMove(event);
-    }
-};
-
-const keyPress = function (event) {
-    if (initted) {
-        controls.keyPress(event)
-    }
-};
-
 window.onkeydown = function(e) {
-    console.log("key down");
     return ev.key !== " ";
 };
 
@@ -673,6 +646,13 @@ const init = function(event) {
         return;
     }
     initted = true;
+
+    document.body.onmousedown = controls.mouseDown;
+    document.body.onmousemove = controls.mouseMove;
+    document.body.onkeypress = controls.keyPress;
+
+    document.body.ontouchstart = controls.mouseDown;
+    document.body.ontouchmove = controls.mouseMove;
 
     container.selectAll("text").transition().duration(500).style("opacity", 0).remove();
 

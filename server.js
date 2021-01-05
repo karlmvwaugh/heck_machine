@@ -58,7 +58,6 @@ const driftLoop = function() {
             drifters.map(driftSetting => {
                 if (state[driftSetting.valueName] && state[driftSetting.valueName][driftSetting.property]) {
                     console.log("changing " + driftSetting.valueName + ":" + driftSetting.property);
-
                     state[driftSetting.valueName][driftSetting.property] += driftSetting.step * (Math.random() < 0.5 ? 1 : -1) * (0.5 + Math.random());
 
                     var msg = {valueName: driftSetting.valueName, property: driftSetting.property, value: state[driftSetting.valueName][driftSetting.property]}
@@ -85,14 +84,14 @@ io.on('connection', (socket) => {
     activeConnections[connectionId] = socket;
 
     state.users.count = state.users.count + 1;
-    console.log('a user connected' + state.users.count);
+    //console.log('a user connected' + state.users.count);
     var msg = { valueName: 'users', property: 'count', value: state.users.count};
     socket.broadcast.emit('dial move', msg);
     socket.emit('whole state', state);
 
 
     socket.on('dial move', (msg) => {
-        console.log("Msg: " + msg.valueName + ":" + msg.property + "=" + msg.value);
+        //console.log("Msg: " + msg.valueName + ":" + msg.property + "=" + msg.value);
 
         if (!state[msg.valueName]) {
             state[msg.valueName] = {};
@@ -107,7 +106,7 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         state.users.count = state.users.count - 1;
-        console.log('a user disconnected ' + state.users.count);
+        //console.log('a user disconnected ' + state.users.count);
 
         delete activeConnections[connectionId];
     });
