@@ -83,6 +83,29 @@ var controls = {
 
       controls.mouseOverCallbacks.map(clickMethod => clickMethod(x, y));
     },
+    touchStart: function(event) {
+        event.preventDefault();
+        var touches = event.changedTouches;
+        touches.map(touch => {
+
+            var x = touch.clientX;
+            var y = touch.clientY;
+            controls.sliderCallbacks.map(clickMethod => clickMethod(x, y));
+        })
+
+    },
+    touchMove: function(event) {
+        event.preventDefault();
+        var touches = event.changedTouches;
+        touches.map(touch => {
+
+            var x = touch.clientX;
+            var y = touch.clientY;
+            controls.sliderCallbacks.map(clickMethod => clickMethod(x, y));
+            controls.mouseOverCallbacks.map(clickMethod => clickMethod(x, y));
+        })
+    },
+
     reciever: function(valueName, property, value) {
         controls.effectCallbacks[valueName][property](value);
         state[valueName][property] = value;
@@ -124,9 +147,7 @@ const initD3 = function() {
         var screen = d3.select("#screen");
         screen.style("background", "#010203");
 
-        var container = svg.append("g");
-
-        return container;
+        return svg.append("g");
     };
 
 const initSounds = function() {
@@ -621,22 +642,29 @@ var homeScreen = function() {
     container.append("text")
         .text("All changes made are shared by all users")
         .attr("x", position)
-        .attr("y", 200)
-        .style("font-size", "24px")
+        .attr("y", 210)
+        .style("font-size", "20px")
         .attr("fill", "white");
 
     container.append("text")
         .text("Except for a mute button in the top left")
         .attr("x", position)
-        .attr("y", 230)
-        .style("font-size", "24px")
+        .attr("y", 240)
+        .style("font-size", "20px")
         .attr("fill", "white");
 
     container.append("text")
         .text("Click, drag, move and type to change things....")
         .attr("x", position)
-        .attr("y", 260)
-        .style("font-size", "24px")
+        .attr("y", 270)
+        .style("font-size", "20px")
+        .attr("fill", "white");
+
+    container.append("text")
+        .text("built over a few days Christmas 2020")
+        .attr("x", position)
+        .attr("y", 330)
+        .style("font-size", "20px")
         .attr("fill", "white");
 };
 
@@ -658,8 +686,8 @@ const init = function(event) {
     document.body.onmousemove = controls.mouseMove;
     document.body.onkeypress = controls.keyPress;
 
-    document.body.ontouchstart = controls.mouseDown;
-    document.body.ontouchmove = controls.mouseMove;
+    document.body.ontouchstart = controls.touchStart;
+    document.body.ontouchmove = controls.touchMove;
 
     container.selectAll("text").transition().duration(500).style("opacity", 0).remove();
 
