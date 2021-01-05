@@ -25,7 +25,8 @@ var state = {
             x: 0,
             y: 0,
             freq: 150,
-            lowpass: 300
+            lowpass: 300,
+            split: 0
         }},
     delay2: {delay: 0.5, feedback: 0.3},
     drySignal2: {gain: 1},
