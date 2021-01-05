@@ -527,9 +527,19 @@ const buildMuteControl = function(width, startWidth, height, startHeight) {
     };
 
     var isMuted = false;
+    var cantMute = false;
 
     const clickFunction = function(x, y) {
         if (coordsInRange(x, y)) {
+            if (cantMute) {
+                return;
+            }
+
+            cantMute = true;
+            window.setTimeout(function () {
+                cantMute = false
+            }, 1000);
+
             //mute/unmute
            if (isMuted) {
                __("#mute").ramp(1,0.1,"gain");
