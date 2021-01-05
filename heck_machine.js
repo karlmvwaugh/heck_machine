@@ -8,13 +8,13 @@ var socket;
 
 var state = {
     crossfade: {volume: 0.3},
-    tremelo: { frequency: 4},
-    lowpass1: {frequency: 150},
+    tremelo: { frequency: 2},
+    lowpass1: {frequency: 150, q: 0},
     pitch: {frequency: 0.15},
     pitch2: {gain: 5},
     delay: {delay: 0.5, feedback: 0.3},
     drySignal: {gain: 1},
-    squareWave: {frequency: 150},
+    squareWave: {frequency: 66},
     squareOsc: {gain: 10, frequency: 0.1},
     tremelo2: {frequency: 0.5, gain: 0.3},
     // kaosGain: {gain: 0},
@@ -41,8 +41,11 @@ var initSocket = function() {
         controls.reciever(msg.valueName, msg.property, msg.value);
     });
 
+    socket.on('typed', (msg) => {
+        controls.typed(msg);
+    });
+
     socket.on('whole state', (receivedState) => {
-        console.log(receivedState);
         for (var key in receivedState) {
             if (receivedState.hasOwnProperty(key)) {
                 state[key] = receivedState[key];
@@ -63,6 +66,7 @@ var controls = {
     effectCallbacks: {},
     sliderCallbacks: [],
     mouseOverCallbacks: [],
+    keyPressCallbacks: [],
     mouseDown: function(event) {
         var x = event.clientX;
         var y = event.clientY;
@@ -95,6 +99,13 @@ var controls = {
         }
 
         controls.effectCallbacks[valueName][property] = callback;
+    },
+    keyPress: function(event) {
+        socket.emit('typed', event.key);
+        controls.keyPressCallbacks.map(clickMethod => clickMethod(event.key, true));
+    },
+    typed: function(letter) {
+        controls.keyPressCallbacks.map(clickMethod => clickMethod(letter, false));
     }
 };
 
@@ -104,13 +115,11 @@ const initD3 = function() {
         effectiveWidth = width * 0.9;
         paddingWidth = width*0.05;
         var height = document.body.clientHeight;
-        console.log("!" + document.body.clientHeight);
-        if (height < 1000) {
-            height = 1000;
+        if (height < 500) {
+            height = 500;
         }
 
         effectiveHeight = height;
-        console.log(width + ":" + height);
         var centre = {x: width/2, y: height/2};
 
         var svg = d3.select("#screen").append("svg").attr("width",width).attr("height", height);
@@ -122,11 +131,10 @@ const initD3 = function() {
         return container;
     };
 
-
-
-
 const initSounds = function() {
     //kaos pad
+    __().gain({id: "mute", gain: 1}).dac();
+
     __().saw({id: "kaosSaw", frequency:400,gain:1})
         .gain({id: "kaosSawVolume", gain: 1})
         .lowpass({id: "kaosLowPass", frequency: 500})
@@ -140,7 +148,7 @@ const initSounds = function() {
 
     __().gain({id: "MG3", gain: 1})
         .gain({id: "MG4", gain: 0.8}) //private adjustment
-        .dac();
+        .connect("#mute");
     __().delay({delay: 1, feedback: 0.3, cutoff: 1500, id: "kaosDelay"}).connect("#MG3");
 
     __().lfo({id: "kaosTremelo", frequency:8 ,modulates:"gain",gain:1,type:"sine"}).connect("#kaosTremGain");
@@ -155,10 +163,10 @@ const initSounds = function() {
 
 //left panel
     __().gain({id: "MG1", gain: 0.7})
-        .dac();
+        .connect("#mute");
 
     __().sine({id: "sine", frequency: 150})
-        .lowpass({id: "lowpass1", frequency: 500})
+        .lowpass({id: "lowpass1", frequency: 500, q: 0})
         .gain({id: "gain", gain: 1});
 
     __().delay({delay: 0.5, feedback: 0.3, cutoff: 1500, id: "delay"}).connect("#MG1");
@@ -173,7 +181,7 @@ const initSounds = function() {
 
     //second
     __().gain({id: "MG2", gain: 0.3})
-        .dac();
+        .connect("#mute");
 
     __().delay({delay: 2, feedback: 0.5, cutoff: 1500, id: "delay2"})
         .connect("#MG2");
@@ -187,10 +195,6 @@ const initSounds = function() {
 
      __().lfo({id: "squareOsc", frequency:0.1 ,modulates:"frequency",gain:10,type:"sine"}).connect("#squareWave");
     __().lfo({id: "tremelo2", frequency:0.5 ,modulates:"gain",gain:0.3, type:"sine"}).connect("#gain2");
-
-
-
-
 };
 
 const colourScheme = {
@@ -211,7 +215,9 @@ const buildSlideControl = function(description, valueName, property, minimumValu
 
     var getDuration = function() {
         var share = (currentValue - minimumValue) / (maximumValue - minimumValue);
-        return (1 - share) * 4900 + 100;
+
+
+        return (1 - share) * 4950 + 50;
     };
 
     var ellipse = container.append("ellipse")
@@ -281,7 +287,6 @@ const buildSlideControl = function(description, valueName, property, minimumValu
     controls.sliderCallbacks.push(clickFunction);
 
     const updateFunction = function (updateValue) {
-        console.log(updateValue + ":" + getCoord(updateValue));
         currentValue = updateValue;
 
         __("#" + valueName).ramp(updateValue,0.1,property);
@@ -365,7 +370,6 @@ const buildCrossFadeControl = function(description, width, startWidth, height, s
     controls.sliderCallbacks.push(clickFunction);
 
     const updateFunction = function (updateValue) {
-        console.log(updateValue + ":" + getCoord(updateValue));
         currentValue = updateValue;
 
         __("#MG1").ramp((1 - currentValue),0.2,"gain");
@@ -464,6 +468,12 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
             //             var yShare = (y - startHeight) / height;
 
             releaseTheNode(xValue, yValue, updateValue.id);
+            var red = Math.round(updateValue.y * 255);
+            var blue = Math.round(updateValue.x * 255);
+            var newColour = "rgb(" + red + ", 0, " + blue + ")";
+            square.transition().duration(100).attr("fill", newColour);
+        } else {
+            square.transition().duration(100).attr("fill", "grey");
         }
 
         // __("#kaosLowpass").ramp(updateValue.lowpass, 0.1, "frequency");
@@ -472,12 +482,109 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
     controls.setCallbacks("kaos", "settings", callback);
 };
 
+const buildMuteControl = function(width, startWidth, height, startHeight) {
+    //width, startWidth, height, startHeight
+    var button = container.append("ellipse")
+        .attr("cx", startWidth + width/2)
+        .attr("cy", startHeight + height/2)
+        .attr("rx", width/2)
+        .attr("ry", height/2)
+        .attr("fill", "green")
+        .style("opacity", 1); //0.5 if we want them to overlap
+
+    var text = container.append("text")
+        .text("Mute")
+        .attr("x", startWidth + 5)
+        .attr("y", startHeight + 15)
+        .style("font-size", "14px")
+        .attr("fill", "white")
+        .style("opacity", 0.7)
+        .style("pointer-events", "none");
+
+    const coordsInRange = function (x, y) {
+        return (x > startWidth && x < startWidth + width && y > startHeight && y < startHeight + height);
+    };
+
+    var isMuted = false;
+
+    const clickFunction = function(x, y) {
+        if (coordsInRange(x, y)) {
+            //mute/unmute
+           if (isMuted) {
+               __("#mute").ramp(1,0.1,"gain");
+               button.transition().duration(100).attr("fill", "green");
+               text.transition().duration(100).text("Mute");
+           } else {
+               __("#mute").ramp(0,0.1,"gain");
+               button.transition().duration(100).attr("fill", "red");
+               text.transition().duration(100).text("Unmute");
+           }
+
+           isMuted = !isMuted;
+        }
+    };
+
+    controls.sliderCallbacks.push(clickFunction);
+
+};
+
+const buildTypewriter = function(width, startWidth, height, startHeight) {
+  var cursor = {x: startWidth, y: startHeight};
+  var fadeTime = 20000;
+
+  const incrementCursor =  function () {
+        cursor.x += 15;
+        if (cursor.x > startWidth + width) {
+            cursor.x = startWidth;
+            cursor.y += 15;
+        }
+
+        if (cursor.y > startHeight + height) {
+            cursor.y = startHeight;
+        }
+  };
+
+
+  const returnCarage = function() {
+    cursor.x = startWidth;
+    cursor.y += 15;
+
+    if (cursor.y > startHeight + height) {
+      cursor.y = startHeight;
+    }
+  };
+
+  const callback = function(letter, myLetter) {
+      if (letter == "Enter") {
+          returnCarage();
+          return;
+      }
+
+      const typed  = container.append("text")
+          .text(letter)
+          .attr("x", cursor.x)
+          .attr("y", cursor.y)
+          .style("font-size", "28px")
+          .attr("fill", myLetter ? "green" : "red")
+          .style("opacity", 0.7)
+          .style("pointer-events", "none");
+
+
+
+      typed.transition().duration(fadeTime).attr("x", 0).attr("y", 0).style("opacity", 0);
+
+      incrementCursor();
+  };
+
+    controls.keyPressCallbacks.push(callback);
+
+};
 
 var countDisplay = function() {
     var text = container.append("text")
         .text(state.users.count)
-        .attr("x", effectiveWidth - paddingWidth)
-        .attr("y", effectiveHeight - paddingWidth)
+        .attr("x", effectiveWidth + paddingWidth)
+        .attr("y", 25)
         .attr("fill", "white")
         .style("pointer-events", "none");;
 
@@ -512,6 +619,20 @@ var homeScreen = function() {
         .attr("y", 160)
         .style("font-size", "24px")
         .attr("fill", "white");
+
+    container.append("text")
+        .text("All changes made are shared by all users")
+        .attr("x", position)
+        .attr("y", 200)
+        .style("font-size", "24px")
+        .attr("fill", "white");
+
+    container.append("text")
+        .text("Except for a mute button in the top left")
+        .attr("x", position)
+        .attr("y", 230)
+        .style("font-size", "24px")
+        .attr("fill", "white");
 };
 
 container = initD3();
@@ -535,6 +656,17 @@ const mouseMove = function(event) {
     }
 };
 
+const keyPress = function (event) {
+    if (initted) {
+        controls.keyPress(event)
+    }
+};
+
+window.onkeydown = function(e) {
+    console.log("key down");
+    return ev.key !== " ";
+};
+
 const init = function(event) {
     if (initted) {
         //controls.mouseDown(event);
@@ -549,29 +681,36 @@ const init = function(event) {
     var leftPad = 2*paddingWidth / 3;
     var itemWidth = effectiveWidth / 2;
     var secondPad = itemWidth + 2*leftPad;
+    var itemHeight = 20;
+    var initalHeight = 10;
+    var heightFor = (i) => i*itemHeight + initalHeight;
 
-    buildSlideControl("Tremelo Speed", "tremelo", "frequency",0, 20, itemWidth, leftPad, 20, 30, 0);
-    buildSlideControl("Low Pass", "lowpass1", "frequency",0, 500, itemWidth, leftPad, 20, 50, 0);
-    buildSlideControl("Pitch Wobble Speed", "pitch", "frequency", 0, 2, itemWidth, leftPad, 20, 70, 0);
-    buildSlideControl("Pitch Wobble Amount", "pitch2", "gain",0, 100, itemWidth, leftPad, 20, 90, 0);
-    buildSlideControl("Delay Time", "delay", "delay",0, 2, itemWidth, leftPad, 20, 110, 0);
-    buildSlideControl("Delay Feedback", "delay", "feedback",0, 1, itemWidth, leftPad, 20, 130, 0);
-    buildSlideControl("Dry Delay", "drySignal", "gain",0, 1, itemWidth, leftPad, 20, 150, 0);
+    buildMuteControl(initalHeight*2, initalHeight, initalHeight*2, initalHeight);
+    buildSlideControl("Tremelo Speed", "tremelo", "frequency",0, 20, itemWidth, leftPad, itemHeight, heightFor(1), 0);
+    buildSlideControl("Low Pass", "lowpass1", "frequency",0, 500, itemWidth, leftPad, itemHeight, heightFor(2), 0);
+    buildSlideControl("Q", "lowpass1", "q",0, 66, itemWidth, leftPad, itemHeight, heightFor(3), 0);
+    buildSlideControl("Pitch Wobble Speed", "pitch", "frequency", 0, 2, itemWidth, leftPad, itemHeight, heightFor(4), 0);
+    buildSlideControl("Pitch Wobble Amount", "pitch2", "gain",0, 100, itemWidth, leftPad, itemHeight, heightFor(5), 0);
+    buildSlideControl("Delay Time", "delay", "delay",0, 2, itemWidth, leftPad, itemHeight, heightFor(6), 0);
+    buildSlideControl("Delay Feedback", "delay", "feedback",0, 1, itemWidth, leftPad, itemHeight, heightFor(7), 0);
+    buildSlideControl("Dry Delay", "drySignal", "gain",0, 1, itemWidth, leftPad, itemHeight, heightFor(8), 0);
 
 
-    buildSlideControl("Frequency", "squareWave", "frequency",0, 200, itemWidth, secondPad, 20, 30, 1);
-    buildSlideControl("Pitch Wobble Speed", "squareOsc", "frequency",0, 20, itemWidth, secondPad, 20, 50, 1);
-    buildSlideControl("Pitch Wobble Amount", "squareOsc", "gain",0, 100, itemWidth, secondPad, 20, 70, 1);
-    buildSlideControl("Tremelo Speed", "tremelo2", "frequency",0, 20, itemWidth, secondPad, 20, 90, 1);
-    buildSlideControl("Tremelo Amount", "tremelo2", "gain",0, 1, itemWidth, secondPad, 20, 110, 1);
-    buildSlideControl("Delay Time", "delay2", "delay",0, 2, itemWidth, secondPad, 20, 130, 1);
-    buildSlideControl("Delay Feedback", "delay2", "feedback",0, 1, itemWidth, secondPad, 20, 150, 1);
-    buildSlideControl("Dry Delay", "drySignal2", "gain",0, 1, itemWidth, secondPad, 20, 170, 1);
+    buildSlideControl("Frequency", "squareWave", "frequency",0, 200, itemWidth, secondPad, itemHeight, heightFor(1), 1);
+    buildSlideControl("Pitch Wobble Speed", "squareOsc", "frequency",0, 20, itemWidth, secondPad, itemHeight, heightFor(2), 1);
+    buildSlideControl("Pitch Wobble Amount", "squareOsc", "gain",0, 100, itemWidth, secondPad, itemHeight, heightFor(3), 1);
+    buildSlideControl("Tremelo Speed", "tremelo2", "frequency",0, 20, itemWidth, secondPad, itemHeight, heightFor(4), 1);
+    buildSlideControl("Tremelo Amount", "tremelo2", "gain",0, 1, itemWidth, secondPad, itemHeight, heightFor(5), 1);
+    buildSlideControl("Delay Time", "delay2", "delay",0, 2, itemWidth, secondPad, itemHeight, heightFor(6), 1);
+    buildSlideControl("Delay Feedback", "delay2", "feedback",0, 1, itemWidth, secondPad, itemHeight, heightFor(7), 1);
+    buildSlideControl("Dry Delay", "drySignal2", "gain",0, 1, itemWidth, secondPad, itemHeight, heightFor(8), 1);
 
     buildCrossFadeControl("Cross Fade", effectiveWidth, paddingWidth, 30, 190);
 
-    var kaosWidth = itemWidth*3/5;
-    buildKaosControl(kaosWidth, leftPad, kaosWidth, 220);
+    var kaosWidth = itemWidth*7/10;
+    buildKaosControl(kaosWidth, leftPad*2, kaosWidth, 220);
+
+    buildTypewriter(effectiveWidth - kaosWidth, kaosWidth + 2*leftPad + 30, 200, 250);
 
     countDisplay();
     __("#sine").play();

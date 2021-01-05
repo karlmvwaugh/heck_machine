@@ -28,6 +28,7 @@ const activeConnections = {};
 const drifters = [
     {valueName: 'tremelo', property: 'frequency', min: 0, max: 20, step: 0.01},
     {valueName: 'lowpass1', property: 'frequency', min: 0, max: 500, step: 0.5},
+    {valueName: 'lowpass1', property: 'q', min: 0, max: 66, step: 0.02},
     {valueName: 'pitch', property: 'frequency', min: 0, max: 2, step: 0.005},
     {valueName: 'pitch2', property: 'gain', min: 0, max: 100, step: 0.1},
     {valueName: 'delay', property: 'delay', min: 0, max: 2, step: 0.002},
@@ -110,6 +111,10 @@ io.on('connection', (socket) => {
 
         delete activeConnections[connectionId];
     });
+
+    socket.on('typed', (msg) => {
+        socket.broadcast.emit('typed', msg);
+    })
 
 
 
