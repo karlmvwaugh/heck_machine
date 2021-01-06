@@ -714,7 +714,7 @@ container = initD3();
 homeScreen();
 
 
-const init = function(event) {
+const init = function() {
     if (initted) {
         //controls.mouseDown(event);
         return;
@@ -805,4 +805,8 @@ const init = function(event) {
     // *//
 
 
+};
+
+const delayedInit = function() {
+  window.setTimeout(init, 100);
 };
