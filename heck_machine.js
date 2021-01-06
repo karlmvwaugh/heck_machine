@@ -5,6 +5,34 @@ var effectiveWidth;
 var paddingWidth;
 var effectiveHeight;
 var socket;
+const getTypingColour = function() {
+  //200-255
+    // 135-255
+    // 100-255
+
+    const first = 220 + Math.round(Math.random()*35);
+    const second = 180 + Math.round(Math.random()*75);
+    const third = 140 + Math.round(Math.random()*115);
+
+    var coin1 = Math.random();
+    var coin2 = Math.random();
+
+    var r = coin1 < (1/3) ? first : coin1 < (2/3) ? second : third;
+
+    var remainingFirst = (r === first) ? second : first;
+    var remainingSecond = (r === third) ? second : third;
+
+    var g = coin2 < (1/2) ? remainingFirst : remainingSecond;
+
+    var b = (g === remainingFirst) ? remainingSecond : remainingFirst;
+
+    return  "rgb(" + r + ", " + g + ", " + b + ")";
+
+};
+
+const typingColour = getTypingColour();
+
+
 
 var state = {
     crossfade: {volume: 0.3},
@@ -124,11 +152,13 @@ var controls = {
         controls.effectCallbacks[valueName][property] = callback;
     },
     keyPress: function(event) {
-        socket.emit('typed', event.key);
-        controls.keyPressCallbacks.map(clickMethod => clickMethod(event.key, true));
+        const msg = { letter: event.key, colour: typingColour};
+        socket.emit('typed', msg);
+        controls.keyPressCallbacks.map(clickMethod => clickMethod(msg.letter, msg.colour));
     },
-    typed: function(letter) {
-        controls.keyPressCallbacks.map(clickMethod => clickMethod(letter, false));
+    typed: function(msg) {
+
+        controls.keyPressCallbacks.map(clickMethod => clickMethod(msg.letter, msg.colour));
     }
 };
 
@@ -585,8 +615,8 @@ const buildTypewriter = function(width, startWidth, height, startHeight) {
     }
   };
 
-  const callback = function(letter, myLetter) {
-      if (letter == "Enter") {
+  const callback = function(letter, colour) {
+      if (letter === "Enter") {
           returnCarage();
           return;
       }
@@ -596,13 +626,13 @@ const buildTypewriter = function(width, startWidth, height, startHeight) {
           .attr("x", cursor.x)
           .attr("y", cursor.y)
           .style("font-size", "28px")
-          .attr("fill", myLetter ? "green" : "red")
+          .attr("fill", colour)
           .style("opacity", 0.7)
           .style("pointer-events", "none");
 
 
 
-      typed.transition().duration(fadeTime).attr("x", 0).attr("y", 0).style("opacity", 0);
+      typed.transition().duration(fadeTime).attr("x", 0).attr("y", 0).style("opacity", 0).remove();
 
       incrementCursor();
   };
