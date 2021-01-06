@@ -4,7 +4,7 @@ var container = null;
 var effectiveWidth;
 var paddingWidth;
 var effectiveHeight;
-var socket;
+var socket = { emit: function(){}};
 const getTypingColour = function() {
   //200-255
     // 135-255
