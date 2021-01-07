@@ -5,6 +5,7 @@ var effectiveWidth;
 var paddingWidth;
 var effectiveHeight;
 var socket = { emit: function(){}};
+
 const getTypingColour = function() {
   //200-255
     // 135-255
@@ -105,12 +106,14 @@ var controls = {
         var x = event.clientX;
         var y = event.clientY;
 
-      if (event.buttons === 1 || event.buttons === 3) {
-          controls.sliderCallbacks.map(clickMethod => clickMethod(x, y));
+        var isMouseButtonDown = event.buttons === 1 || event.buttons === 3
+
+      if (isMouseButtonDown) {
+          controls.onDragCallbacks.map(clickMethod => clickMethod(x, y));
       }
 
 
-      controls.mouseOverCallbacks.map(clickMethod => clickMethod(x, y));
+      controls.mouseOverCallbacks.map(clickMethod => clickMethod(x, y, isMouseButtonDown));
     },
     touchStart: function(event) {
         var touches = event.changedTouches;
@@ -328,6 +331,7 @@ const buildSlideControl = function(description, valueName, property, minimumValu
 
     const clickFunction = function(x, y) {
       if (coordsInRange(x, y)) {
+
           var xShare = (x - startWidth) / (width);
 
           var newValue = xShare * (maximumValue - minimumValue) + minimumValue;
@@ -338,6 +342,7 @@ const buildSlideControl = function(description, valueName, property, minimumValu
     controls.sliderCallbacks.push(clickFunction);
 
     const updateFunction = function (updateValue) {
+    const updateSynthAndVisuals = function (updateValue) {
         currentValue = updateValue;
 
         __("#" + valueName).ramp(updateValue,0.1,property);
@@ -347,7 +352,7 @@ const buildSlideControl = function(description, valueName, property, minimumValu
             .attr("transform", "translate(" + getCoord(currentValue) + ","  + (startHeight + (height/2)) + ")")
             .ease("linear");
     };
-    controls.setCallbacks(valueName, property, updateFunction);
+    controls.setCallbacks(valueName, property, updateSynthAndVisuals);
 };
 
 const buildCrossFadeControl = function(description, width, startWidth, height, startHeight) {
@@ -436,7 +441,6 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
     // var currentValue = state[valueName][property];
     var myId = Math.round(Math.random()*1000);
 
-
     var square = container.append("rect")
         .attr("x", startWidth)
         .attr("y", startHeight)
@@ -465,14 +469,14 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
         return (x > startWidth && x < startWidth + width && y > startHeight && y < startHeight + height);
     };
 
-    const clickFunction = function(x, y) {
+    const clickFunction = function(x, y, isMouseButtonDown) {
         if (coordsInRange(x, y)) {
             var xShare = (x - startWidth) / (width);
             var freq = 150 + 350*xShare;
 
             var yShare = (y - startHeight) / height;
             var obj = {
-                on: true,
+                on: !isMouseButtonDown,
                 x: xShare,
                 y: yShare,
                 freq: freq,
@@ -500,7 +504,6 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
 
     const callback = function (updateValue) {
         const gain = updateValue.on ? 1 : 0;
-
 
         __("#kaosGain").ramp(gain, 0.1, "gain");
         __("#kaosSaw").ramp(updateValue.freq, 0.1, "frequency");
@@ -530,6 +533,7 @@ const buildKaosControl = function(width, startWidth, height, startHeight) {
         // __("#kaosLowpass").ramp(updateValue.lowpass, 0.1, "frequency");
 
     };
+
     controls.setCallbacks("kaos", "settings", callback);
 };
 
@@ -789,19 +793,12 @@ const init = function() {
 
     //*
     // CHANGES:
-    // kaos pad section (colouration? another?)
-    // mini-chat window, / chat feature?
-    // more controls on current things (osc speed, depth, second delay time etc.) - dry delay etc
     // ADD REVERB, allow ambience controls.
-    // Different colourings on different control sections (perhaps?) (colourschemes)
-    //
     //
     // Work out how to deploy this mofo (ish - does it change on change)
-    // Drag the dials. Phone controls. Touch etc.
-    //
-    // make new settings easier to insert (agnostic backend/state model)
     // logarhythmic and/or linear scales on different sliders
-    //
+    // the drag sticks to the sliders
+    // Kaos pad mute
     // *//
 
 
