@@ -106,10 +106,10 @@ var controls = {
         var x = event.clientX;
         var y = event.clientY;
 
-        var isMouseButtonDown = event.buttons === 1 || event.buttons === 3
+        var isMouseButtonDown = event.buttons === 1 || event.buttons === 3;
 
       if (isMouseButtonDown) {
-          controls.onDragCallbacks.map(clickMethod => clickMethod(x, y));
+          controls.sliderCallbacks.map(clickMethod => clickMethod(x, y));
       }
 
 
@@ -341,7 +341,6 @@ const buildSlideControl = function(description, valueName, property, minimumValu
 
     controls.sliderCallbacks.push(clickFunction);
 
-    const updateFunction = function (updateValue) {
     const updateSynthAndVisuals = function (updateValue) {
         currentValue = updateValue;
 
